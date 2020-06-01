@@ -6,6 +6,7 @@ import (
 	"flag"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 const (
@@ -27,18 +28,30 @@ var ( // command line argument toggles
 	rootPath		   string // path to root search folder
 
 	objectTypes		   []string // all the object specifiers that are to be checked
+	wg				   sync.WaitGroup
 )
 
 
 func main () {
+
 	getCommandLineArguments ()
 
-	objectTypes = getObjectTypes ()
+	objectTypes = getCommandLineObjectTypes ()
+	wg.Add (len(objectTypes)) // one thread per type found
+
 	showBanner ()
 
-	err := folderTreeScanner (rootPath)
-	if err != KErrorNone {
-		showError (err)
+	// for each object type search on a separate thread
+
+	for _, object := range objectTypes {
+		var err int = KErrorNone
+
+		go func () {
+			err = folderTreeScanner (rootPath, object)
+		}()
+		if err != KErrorNone {
+			showError (err)
+		}
 	}
 }
 
@@ -50,7 +63,7 @@ func showBanner () {
 }
 
 // iterate through command line pulling out all non flag arguments
-func getObjectTypes () []string {
+func getCommandLineObjectTypes () []string {
 	
 	var objects []string
 
@@ -98,11 +111,12 @@ func getCommandLineArguments () {
 }
 
 
-func folderTreeScanner (rootPath string) int {
+func folderTreeScanner (rootPath string, objectSpecifier string) int {
 	err := filepath.Walk(rootPath,
 				 	     func(path string, info os.FileInfo, err error) error {
-		  			         if err != nil {
-		  			 	      return err
+		  			        if err != nil {
+		  			        	  wg.Done ()
+		  			 		      return err
 				   	        }
    	 		
 					   	 // do whatever here
@@ -115,7 +129,7 @@ func folderTreeScanner (rootPath string) int {
 									if !*muteFlagPtr {
 										fmt.Printf ("Deleting folder '%s' ...\n", strings.ToUpper(info.Name ()))
 									}
-									// delete folder and its sub folders
+									// **** TODO delete folder and its sub folders
 								}
 							}
 
@@ -127,13 +141,16 @@ func folderTreeScanner (rootPath string) int {
 								os.Remove (info.Name ())
 							}
 						}	
-					   
+						wg.Done ()
+										   
 					   	if err != nil {
 					   		return err
 					   	}
 
 					   	return nil
 				})
+
+	wg.Done ()
 
 	if err != nil {
        	return KErrorTemp2
