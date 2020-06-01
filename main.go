@@ -25,11 +25,15 @@ var ( // command line argument toggles
 	deleteFlagPtr	   *bool // delete matching files/folders?
 	pruneFlagPtr       *bool // remove emoty folders?
 	rootPath		   string // path to root search folder
+
+	objectTypes		   []string // all the object specifiers that are to be checked
 )
 
 
 func main () {
 	getCommandLineArguments ()
+
+	objectTypes = getObjectTypes ()
 	showBanner ()
 
 	err := folderTreeScanner (rootPath)
@@ -43,6 +47,20 @@ func showBanner () {
 	if !*muteFlagPtr {
 		fmt.Printf ("ZeroFile Utility version %s\n\n", ZEROFILE_VERSION)
 	}
+}
+
+// iterate through command line pulling out all non flag arguments
+func getObjectTypes () []string {
+	
+	var objects []string
+
+	for index := 1; index < len(os.Args); index++ {
+		if os.Args[index][0] != '-' {
+			objects = append (objects, os.Args[index])
+		}
+	}	
+
+	return objects
 }
 
 func showError (err int) {
