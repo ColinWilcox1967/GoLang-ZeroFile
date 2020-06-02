@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"io/ioutil"
 )
 
 const (
@@ -29,6 +30,7 @@ var ( // command line argument toggles
 
 	objectTypes		   []string // all the object specifiers that are to be checked
 	wg				   sync.WaitGroup
+	fileList		   []os.FileInfo
 )
 
 
@@ -37,20 +39,38 @@ func main () {
 	getCommandLineArguments ()
 
 	objectTypes = getCommandLineObjectTypes ()
-	wg.Add (len(objectTypes)) // one thread per type found
+
+	// non recursive just top left folder
+	if !*recursiveFlagPtr {
+		// just read root folder
+
+		fmt.Println ("@@@")
+		fileList,err := ioutil.ReadDir (rootPath)
+
+		if err == nil {
+			for _,file := range fileList {
+				fmt.Println (file.Name ())
+			}
+		}
+	} else {
+		wg.Add (len(objectTypes)) // one thread per type found
+	}
 
 	showBanner ()
 
 	// for each object type search on a separate thread
+	if !*recursiveFlagPtr {
+		
+	} else {
+		for _, object := range objectTypes {
+			var err int = KErrorNone
 
-	for _, object := range objectTypes {
-		var err int = KErrorNone
-
-		go func () {
-			err = folderTreeScanner (rootPath, object)
-		}()
-		if err != KErrorNone {
-			showError (err)
+			go func () {
+				err = folderTreeScanner (rootPath, object)
+			}()
+			if err != KErrorNone {
+				showError (err)
+			}
 		}
 	}
 }
@@ -102,7 +122,7 @@ func showError (err int) {
 func getCommandLineArguments () {
 	
 	muteFlagPtr = flag.Bool ("mute", false, "Echo activity to console")
-	recursiveFlagPtr = flag.Bool ("recursive", true, "Recurse through folder structure")
+	recursiveFlagPtr = flag.Bool ("recursive", false, "Recurse through folder structure")
 	deleteFlagPtr = flag.Bool ("delete", false, "Delete all zero length files")
 	pruneFlagPtr = flag.Bool ("prune", false, "Remove all empty folders and sub folders")
 	flag.StringVar (&rootPath, "root", ".", "Path to top of search tree")
