@@ -148,7 +148,7 @@ func folderTreeScanner (rootPath string, objectSpecifier string) int {
 									if !*muteFlagPtr {
 										fmt.Printf ("Deleting folder '%s' ...\n", strings.ToUpper(info.Name ()))
 									}
-									// **** TODO delete folder and its sub folders
+									os.RemoveAll (info.Name ())
 								}
 							}
 
