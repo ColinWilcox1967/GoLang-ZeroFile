@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"io/ioutil"
+
 )
 
 const (
@@ -15,10 +16,11 @@ const (
 )
 
 const ( // error return values
-	KErrorNone 		   int = 0
-	KErrorFileNotFound int = 1
-	KErrorTemp1		   int = 2
-	KErrorTemp2	       int = 3
+	KErrorNone 		     int = 0
+	KErrorFileNotFound   int = 1
+	KErrorTemp1		     int = 2
+	KErrorTemp2	         int = 3
+	KErrorFolderNotFound int = 4
 )
 
 var ( // command line argument toggles
@@ -56,20 +58,22 @@ func main () {
 	}
 
 	showBanner ()
+	showRoot ()
 
 	// for each object type search on a separate thread
-	if !*recursiveFlagPtr {
-		
-	} else {
-		for _, object := range objectTypes {
-			var err int = KErrorNone
+	for _, object := range objectTypes {
+		var err int = KErrorNone
 
+		if folderExists (rootPath) {
 			go func () {
 				err = folderTreeScanner (rootPath, object)
 			}()
-			if err != KErrorNone {
-				showError (err)
-			}
+		} else {
+			showError (KErrorFolderNotFound, rootPath)
+		}
+
+		if err != KErrorNone {
+			showError (err, "")
 		}
 	}
 }
@@ -78,6 +82,12 @@ func showBanner () {
 	
 	if !*muteFlagPtr {
 		fmt.Printf ("ZeroFile Utility version %s\n\n", ZEROFILE_VERSION)
+	}
+}
+
+func showRoot () {
+	if !*muteFlagPtr {
+		fmt.Printf ("Root Folder is '%s' ...\n", strings.ToUpper(rootPath))
 	}
 }
 
@@ -95,13 +105,25 @@ func getCommandLineObjectTypes () []string {
 	return objects
 }
 
-func showError (err int) {
+func folderExists (filePath string) bool {
+	_, err := os.Stat(filePath)
+    if os.IsNotExist(err) {
+       return false
+    }
+
+    return true
+}
+
+
+func showError (err int, extraInfo string) {
 	var message string
 
 	if !*muteFlagPtr {
 		message += "Error : "
 		switch (err) {
 			case KErrorNone: // nothing
+			case KErrorFolderNotFound:
+							message += "Folder " + fmt.Sprintf ("%s", strings.ToUpper(extraInfo))+" not found."
 			case KErrorTemp1: 
 							message += "Error Type 1"
 			case KErrorTemp2:
@@ -128,7 +150,6 @@ func getCommandLineArguments () {
 
 	flag.Parse ()
 }
-
 
 func folderTreeScanner (rootPath string, objectSpecifier string) int {
 	err := filepath.Walk(rootPath,
