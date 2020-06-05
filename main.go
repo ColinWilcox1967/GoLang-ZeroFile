@@ -44,7 +44,6 @@ func main () {
 	if !*recursiveFlagPtr {
 		// just read root folder
 
-		fmt.Println ("@@@")
 		fileList,err := ioutil.ReadDir (rootPath)
 
 		if err == nil {
