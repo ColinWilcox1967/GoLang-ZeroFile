@@ -9,6 +9,8 @@ import (
 	"sync"
 	"io/ioutil"
 
+	fileutilities "github.com/colinwilcox1967/golangfileandfolderutilities"
+
 )
 
 const (
@@ -64,7 +66,7 @@ func main () {
 	for _, object := range objectTypes {
 		var err int = KErrorNone
 
-		if folderExists (rootPath) {
+		if fileutilities.FolderExists (rootPath) {
 			go func () {
 				err = folderTreeScanner (rootPath, object)
 			}()
@@ -103,15 +105,6 @@ func getCommandLineObjectTypes () []string {
 	}	
 
 	return objects
-}
-
-func folderExists (filePath string) bool {
-	_, err := os.Stat(filePath)
-    if os.IsNotExist(err) {
-       return false
-    }
-
-    return true
 }
 
 
