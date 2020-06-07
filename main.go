@@ -9,8 +9,7 @@ import (
 	"sync"
 	"io/ioutil"
 
-	fileutilities "github.com/colinwilcox1967/golangfileandfolderutilities"
-
+	folderutilities "github.com/colinwilcox1967/golangfolderutilities"
 )
 
 const (
@@ -66,7 +65,7 @@ func main () {
 	for _, object := range objectTypes {
 		var err int = KErrorNone
 
-		if fileutilities.FolderExists (rootPath) {
+		if folderutilities.FolderExists (rootPath) {
 			go func () {
 				err = folderTreeScanner (rootPath, object)
 			}()
